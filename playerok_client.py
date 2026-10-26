@@ -416,14 +416,20 @@ class PlayerokClient:
         statuses = acc.get_item_priority_statuses(created.id, price)
         by_type = {s.type: s for s in statuses}
         target = by_type.get(PriorityTypes.DEFAULT) or (statuses[0] if statuses else None)
+        default_status = target
         used_premium, warning = False, None
         if premium:
             premium_status = by_type.get(PriorityTypes.PREMIUM)
-            balance = acc.profile.balance.available if acc.profile and acc.profile.balance else 0
+            # Премиум оплачивается целиком либо из свободного, либо из замороженного баланса —
+            # суммировать их нельзя
+            balance = acc.profile.balance if acc.profile else None
+            available = getattr(balance, "available", 0) or 0
+            frozen = getattr(balance, "frozen", 0) or 0
             if not premium_status:
                 warning = "премиум недоступен для этого лота"
-            elif premium_status.price and balance < premium_status.price:
-                warning = f"не хватает баланса на премиум ({balance} из {premium_status.price} ₽)"
+            elif premium_status.price and max(available, frozen) < premium_status.price:
+                warning = (f"не хватает баланса на премиум {premium_status.price} ₽: "
+                           f"свободно {available} ₽, заморожено {frozen} ₽")
             else:
                 target, used_premium = premium_status, True
             if warning and not premium_fallback:
@@ -432,7 +438,19 @@ class PlayerokClient:
         if not target:
             raise ValueError("Нет доступных статусов публикации")
 
-        published = acc.publish_item(created.id, target.id)
+        try:
+            published = acc.publish_item(created.id, target.id)
+        except Exception as e:
+            # Окончательно решает Playerok: если он не принял оплату премиума — обычное выставление
+            if not used_premium or not default_status:
+                raise
+            logger.warning(f"[publish] Playerok отклонил премиум для {created.id}: {e}")
+            warning = f"Playerok отклонил премиум: {e}"
+            if not premium_fallback:
+                return {"created_id": created.id, "published": False, "warning": warning,
+                        "slug": getattr(created, "slug", ""), "price": price}
+            target, used_premium = default_status, False
+            published = acc.publish_item(created.id, target.id)
         return {
             "published": True,
             "item_id": published.id,
