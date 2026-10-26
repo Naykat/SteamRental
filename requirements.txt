@@ -1,0 +1,8 @@
+aiogram>=3.10
+aiosqlite>=0.20
+python-dotenv>=1.0
+curl_cffi>=0.7
+wrapper-tls-requests>=1.1
+websocket-client>=1.8
+requests>=2.31
+Pillow>=10.0

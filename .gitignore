@@ -1,0 +1,34 @@
+# Секреты и настройки: токен бота, ID админов (шаблон — .env.example)
+.env
+.env.*
+!.env.example
+
+# База: cookies Playerok, логины/пароли Steam, секреты maFile, кошелёк для вывода
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Логи: ники покупателей, ID чатов и сделок
+*.log
+
+# Картинки лотов
+images/
+
+# Файлы Steam Guard и сессии
+*.maFile
+*.mafile
+maFiles/
+session*.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# IDE / ОС
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
